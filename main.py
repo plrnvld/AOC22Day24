@@ -1,6 +1,5 @@
 from __future__ import annotations
-# from queue import PriorityQueue
-from queue import SimpleQueue
+from queue import SimpleQueue, PriorityQueue
 from dataclasses import dataclass, field
 from typing import Any
 from math import inf
@@ -9,6 +8,7 @@ from math import inf
 # https://linuxhint.com/priority-queue-python/
 
 file_name = "Input.txt"
+
 
 class Pos:
 
@@ -136,46 +136,64 @@ class Valley:
                                all_next)
         return filtered_next
 
+
 @dataclass(order=True)
 class PrioritizedItem:
     priority: int
-    item: Any=field(compare=False)
+    item: Any = field(compare=False)
+
 
 with open(file_name) as file:
     valley = Valley(file.read().splitlines())
 
-# positions = PriorityQueue()
-positions = SimpleQueue()
-
-def add_to_queue(pos: Pos, minute: int):
-    positions.put(PrioritizedItem(priority=valley.dist_to_target(pos), item=(pos, minute)))
+positions = PriorityQueue()
+# positions = SimpleQueue()
+best_positions = []
 
 
-add_to_queue(valley.start, 0)
+def add_to_normal_queue(pos: Pos, minute: int):
+    positions.put(PrioritizedItem(
+        priority=valley.dist_to_target(pos), item=(pos, minute)))
+
+
+def add_to_best_positions(pos: Pos, minute: int):
+    best_positions.append(PrioritizedItem(
+        priority=valley.dist_to_target(pos), item=(pos, minute)))
+
+
+add_to_normal_queue(valley.start, 0)
 
 best_minutes = inf
 best_dist = inf
 
 counter = 1
-while not positions.empty():
-    prio_item = positions.get()
+while not positions.empty() or len(best_positions) > 0:
+    if len(best_positions) > 0:
+        prio_item = best_positions.pop(0)
+    else:
+        prio_item = positions.get()
+
     (p, m) = prio_item.item
     dist = prio_item.priority
     # print(f"Queue contained {p} with minute={m} and dist={d}")
     if (p == valley.target and m < best_minutes):
         best_minutes = m
 
-    if (dist < best_dist):
-        print(f"Improved pos now {p}, dist = {dist}")
-        best_dist = dist
-
-    if (counter % 100000 == 0):
-        print(f"[{counter}] current best = {best_minutes}, best dist = {best_dist}, queue size around {positions.qsize()}")
+    if (counter % 1000000 == 0):
+        millis = counter / 1000000
+        queue_size_m = positions.qsize() / 1000000
+        print(f"[{millis}M] current best = {best_minutes}, best dist = {best_dist}, queue size around {queue_size_m}M")
 
     counter += 1
 
     for next in valley.next_positions(p, m):
-        if m < 300:
-            add_to_queue(next, m + 1)
-        else:
-            print(".", end='')
+        if (dist < best_dist):
+            print(f"Improved pos now {p}, dist = {dist}")
+            best_dist = dist
+            add_to_best_positions(next, m+1)
+        elif m < 500:
+            add_to_normal_queue(next, m + 1)
+
+
+# 170 too low
+# 494 too high
