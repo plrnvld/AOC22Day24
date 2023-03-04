@@ -149,10 +149,15 @@ with open(file_name) as file:
 positions = PriorityQueue()
 # positions = SimpleQueue()
 best_positions = []
+end_game_stack = []
 
 
 def add_to_normal_queue(pos: Pos, minute: int):
     positions.put(PrioritizedItem(
+        priority=valley.dist_to_target(pos), item=(pos, minute)))
+
+def add_to_end_game_queue(pos: Pos, minute: int):
+    end_game_stack.append(PrioritizedItem(
         priority=valley.dist_to_target(pos), item=(pos, minute)))
 
 
@@ -166,34 +171,51 @@ add_to_normal_queue(valley.start, 0)
 best_minutes = inf
 best_dist = inf
 
+first_answer_found = False
+
 counter = 1
-while not positions.empty() or len(best_positions) > 0:
+while not positions.empty() or len(best_positions) > 0 or len(end_game_stack) > 0:
     if len(best_positions) > 0:
         prio_item = best_positions.pop(0)
+    elif first_answer_found:
+        prio_item = end_game_stack.pop()
     else:
         prio_item = positions.get()
 
     (p, m) = prio_item.item
     dist = prio_item.priority
-    # print(f"Queue contained {p} with minute={m} and dist={d}")
+    
     if (p == valley.target and m < best_minutes):
         best_minutes = m
 
+        print(f"🎉 answer found 🎉 => {best_minutes}")
+
+        if (not first_answer_found):
+            print("🔥🔥🔥 END GAME STARTS 🔥🔥🔥")
+            new_queue = SimpleQueue()
+            while not positions.empty():
+                end_game_stack.append(positions.get())
+                
+            first_answer_found = True
+
     if (counter % 1000000 == 0):
         millis = counter / 1000000
-        queue_size_m = positions.qsize() / 1000000
-        print(f"[{millis}M] current best = {best_minutes}, best dist = {best_dist}, queue size around {queue_size_m}M")
+        num_items = len(end_game_stack)
+        print(f"[{millis}M] current best = {best_minutes}, best dist = {best_dist}, end game num items {num_items}")
 
     counter += 1
 
     for next in valley.next_positions(p, m):
         if (dist < best_dist):
-            print(f"Improved pos now {p}, dist = {dist}")
+            # print(f"Improved pos now {p}, dist = {dist}")
             best_dist = dist
             add_to_best_positions(next, m+1)
-        elif m < 500:
-            add_to_normal_queue(next, m + 1)
-
+        elif m + valley.dist_to_target(p) < best_minutes:
+            if first_answer_found:
+                add_to_end_game_queue(next, m+1)
+            else:
+                add_to_normal_queue(next, m + 1)
 
 # 170 too low
 # 494 too high
+# 450 too high
