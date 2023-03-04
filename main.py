@@ -1,5 +1,9 @@
 from __future__ import annotations
 from queue import PriorityQueue
+from dataclasses import dataclass, field
+from typing import Any
+from math import inf
+
 # https://docs.python.org/3/library/queue.html
 # https://linuxhint.com/priority-queue-python/
 
@@ -80,10 +84,11 @@ class Valley:
     def is_open(self, pos, minutes) -> bool:
         if (pos == valley.target):
             return True
-            
-        if (pos.x <= 0 or pos.x >= self.width-1 or pos.y <= 0 or pos.y >= self.height-1):
+
+        if (pos.x <= 0 or pos.x >= self.width - 1 or pos.y <= 0
+                or pos.y >= self.height - 1):
             return False
-        
+
         left_pos = self.wrap_to_board_pos(pos.move_left(minutes))
         right_pos = self.wrap_to_board_pos(pos.move_right(minutes))
         up_pos = self.wrap_to_board_pos(pos.move_up(minutes))
@@ -113,19 +118,53 @@ class Valley:
     def dist_to_target(self, pos) -> int:
         return pos.dist(self.target)
 
+    def next_positions(self, pos, curr_minute) -> list[Pos]:
+        x = pos.x
+        y = pos.y
+        next_minute = curr_minute + 1
+        all_next = [
+            pos,
+            Pos(x - 1, y),
+            Pos(x + 1, y),
+            Pos(x, y - 1),
+            Pos(x, y + 1)
+        ]
+        all_next.sort(key=lambda p: self.dist_to_target(p))
+        filtered_next = filter(lambda p: self.is_open(p, next_minute),
+                               all_next)
+        return filtered_next
+
+@dataclass(order=True)
+class PrioritizedItem:
+    priority: int
+    item: Any=field(compare=False)
 
 with open('Example.txt') as file:
     valley = Valley(file.read().splitlines())
 
 positions = PriorityQueue()
 
-
-def add_to_queue(pos, minute):
-    positions.put((valley.dist_to_target(pos), (pos, minute)))
+def add_to_queue(pos: Pos, minute: int):
+    positions.put(PrioritizedItem(priority=minute, item=pos))
 
 
 add_to_queue(valley.start, 0)
 
+best_minutes = inf
+
+counter = 1
 while not positions.empty():
-    (d, (p, m)) = positions.get()
-    print(f"Queue contained {p} with minute={m} and dist={d}")
+    prio_item = positions.get()
+    p = prio_item.item
+    m = prio_item.priority
+    # print(f"Queue contained {p} with minute={m} and dist={d}")
+    if (p == valley.target and m < best_minutes):
+        best_minutes = m
+
+    if (counter % 10000 == 0):
+        print(f"[{counter}] current best = {best_minutes}")
+
+    counter += 1
+
+    for next in valley.next_positions(p, m):
+        add_to_queue(next, m + 1)
