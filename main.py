@@ -1,6 +1,7 @@
 from __future__ import annotations
 from queue import PriorityQueue
 # https://docs.python.org/3/library/queue.html
+# https://linuxhint.com/priority-queue-python/
 
 
 class Pos:
@@ -77,6 +78,12 @@ class Valley:
         return self.lines[pos.y][pos.x] == '.'
 
     def is_open(self, pos, minutes) -> bool:
+        if (pos == valley.target):
+            return True
+            
+        if (pos.x <= 0 or pos.x >= self.width-1 or pos.y <= 0 or pos.y >= self.height-1):
+            return False
+        
         left_pos = self.wrap_to_board_pos(pos.move_left(minutes))
         right_pos = self.wrap_to_board_pos(pos.move_right(minutes))
         up_pos = self.wrap_to_board_pos(pos.move_up(minutes))
@@ -103,12 +110,22 @@ class Valley:
         return Pos((pos.x - 1) % (self.width - 2) + 1,
                    (pos.y - 1) % (self.height - 2) + 1)
 
+    def dist_to_target(self, pos) -> int:
+        return pos.dist(self.target)
+
 
 with open('Example.txt') as file:
     valley = Valley(file.read().splitlines())
 
-for n in range(10):
-    print(f"=== Minute {n} ===")
-    print()
-    valley.print_valley(n)
-    print()
+positions = PriorityQueue()
+
+
+def add_to_queue(pos, minute):
+    positions.put((valley.dist_to_target(pos), (pos, minute)))
+
+
+add_to_queue(valley.start, 0)
+
+while not positions.empty():
+    (d, (p, m)) = positions.get()
+    print(f"Queue contained {p} with minute={m} and dist={d}")
