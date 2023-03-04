@@ -168,11 +168,12 @@ def add_to_best_positions(pos: Pos, minute: int):
 
 add_to_normal_queue(valley.start, 0)
 
-best_minutes = inf
+best_minutes = 450 # 450 is too high says AOC, so why not make use of it, ###################### Change this if this does not work
 best_dist = inf
 
 first_answer_found = False
 
+rejected = 0
 counter = 1
 while not positions.empty() or len(best_positions) > 0 or len(end_game_stack) > 0:
     if len(best_positions) > 0:
@@ -201,20 +202,22 @@ while not positions.empty() or len(best_positions) > 0 or len(end_game_stack) > 
     if (counter % 1000000 == 0):
         millis = counter / 1000000
         num_items = len(end_game_stack)
-        print(f"[{millis}M] current best = {best_minutes}, best dist = {best_dist}, end game num items {num_items}")
-
-    counter += 1
+        rejected_m = rejected / 1000000
+        print(f"[{millis}M] current best = {best_minutes}, best dist = {best_dist}, end game num items {num_items}, rejected = {rejected_m}M")
 
     for next in valley.next_positions(p, m):
+        counter += 1
         if (dist < best_dist):
             # print(f"Improved pos now {p}, dist = {dist}")
             best_dist = dist
             add_to_best_positions(next, m+1)
-        elif m + valley.dist_to_target(p) < best_minutes:
+        elif m + valley.dist_to_target(p) < best_minutes: 
             if first_answer_found:
                 add_to_end_game_queue(next, m+1)
             else:
                 add_to_normal_queue(next, m + 1)
+        else:
+            rejected += 1
 
 # 170 too low
 # 494 too high
