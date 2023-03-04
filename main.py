@@ -50,10 +50,12 @@ class Valley:
         right_pos = self.wrap_to_board_pos(pos.move_right(minutes))
         up_pos = self.wrap_to_board_pos(pos.move_up(minutes))
         down_pos = self.wrap_to_board_pos(pos.move_down(minutes))
+
         left = self.get_pos_initial(left_pos)
         right = self.get_pos_initial(right_pos)
         up = self.get_pos_initial(up_pos)
         down = self.get_pos_initial(down_pos)
+
         on_pos = []
         if (left == '>'):
             on_pos.append(left)
@@ -71,13 +73,27 @@ class Valley:
 
         return str(on_pos_count)
 
-    def is_open(self, pos) -> bool:
+    def is_open_initial(self, pos) -> bool:
         return self.lines[pos.y][pos.x] == '.'
+
+    def is_open(self, pos, minutes) -> bool:
+        left_pos = self.wrap_to_board_pos(pos.move_left(minutes))
+        right_pos = self.wrap_to_board_pos(pos.move_right(minutes))
+        up_pos = self.wrap_to_board_pos(pos.move_up(minutes))
+        down_pos = self.wrap_to_board_pos(pos.move_down(minutes))
+
+        left = self.get_pos_initial(left_pos)
+        right = self.get_pos_initial(right_pos)
+        up = self.get_pos_initial(up_pos)
+        down = self.get_pos_initial(down_pos)
+
+        return left != '>' and right != '<' and up != 'v' and down != '^'
 
     def print_valley(self, minutes):
         for y in range(self.height):
             for x in range(self.width):
-                if (x == 0 or x == self.width - 1 or y == 0 or y == self.height - 1):
+                if (x == 0 or x == self.width - 1 or y == 0
+                        or y == self.height - 1):
                     print(self.get_pos_initial(Pos(x, y)), end='')
                 else:
                     print(self.get_pos(Pos(x, y), minutes), end='')
@@ -96,4 +112,3 @@ for n in range(10):
     print()
     valley.print_valley(n)
     print()
-
