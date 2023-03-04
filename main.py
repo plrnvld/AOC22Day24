@@ -1,3 +1,6 @@
+from queue import PriorityQueue
+# https://docs.python.org/3/library/queue.html
+
 class Valley:
 
     def __init__(self, lines):
