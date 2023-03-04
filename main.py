@@ -1,5 +1,6 @@
 from __future__ import annotations
-from queue import PriorityQueue
+# from queue import PriorityQueue
+from queue import SimpleQueue
 from dataclasses import dataclass, field
 from typing import Any
 from math import inf
@@ -7,6 +8,7 @@ from math import inf
 # https://docs.python.org/3/library/queue.html
 # https://linuxhint.com/priority-queue-python/
 
+file_name = "Input.txt"
 
 class Pos:
 
@@ -82,7 +84,7 @@ class Valley:
         return self.lines[pos.y][pos.x] == '.'
 
     def is_open(self, pos, minutes) -> bool:
-        if (pos == valley.target):
+        if (pos == valley.target or pos == valley.start):
             return True
 
         if (pos.x <= 0 or pos.x >= self.width - 1 or pos.y <= 0
@@ -139,32 +141,41 @@ class PrioritizedItem:
     priority: int
     item: Any=field(compare=False)
 
-with open('Example.txt') as file:
+with open(file_name) as file:
     valley = Valley(file.read().splitlines())
 
-positions = PriorityQueue()
+# positions = PriorityQueue()
+positions = SimpleQueue()
 
 def add_to_queue(pos: Pos, minute: int):
-    positions.put(PrioritizedItem(priority=minute, item=pos))
+    positions.put(PrioritizedItem(priority=valley.dist_to_target(pos), item=(pos, minute)))
 
 
 add_to_queue(valley.start, 0)
 
 best_minutes = inf
+best_dist = inf
 
 counter = 1
 while not positions.empty():
     prio_item = positions.get()
-    p = prio_item.item
-    m = prio_item.priority
+    (p, m) = prio_item.item
+    dist = prio_item.priority
     # print(f"Queue contained {p} with minute={m} and dist={d}")
     if (p == valley.target and m < best_minutes):
         best_minutes = m
 
-    if (counter % 10000 == 0):
-        print(f"[{counter}] current best = {best_minutes}")
+    if (dist < best_dist):
+        print(f"Improved pos now {p}, dist = {dist}")
+        best_dist = dist
+
+    if (counter % 100000 == 0):
+        print(f"[{counter}] current best = {best_minutes}, best dist = {best_dist}, queue size around {positions.qsize()}")
 
     counter += 1
 
     for next in valley.next_positions(p, m):
-        add_to_queue(next, m + 1)
+        if m < 300:
+            add_to_queue(next, m + 1)
+        else:
+            print(".", end='')
