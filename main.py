@@ -154,6 +154,12 @@ items_deque = deque()
 best_positions = []
 end_game_stack = []
 
+rejected = 0
+dedupped = 0
+dedup_max = 40
+hist_size = 100
+counter = 1
+
 
 def create_prio_item(pos: Pos, minute: int, prev: PrioritizedItem) -> PrioritizedItem:
     if (prev is None):
@@ -161,8 +167,10 @@ def create_prio_item(pos: Pos, minute: int, prev: PrioritizedItem) -> Prioritize
     else:
         hist_list = prev.hist
         hist_list.insert(0, pos)
-        if (len(hist_list) > 100):
-            hist_list.pop()
+        hist_len = len(hist_list)
+        if (hist_len > hist_size):
+            for i in range(hist_len - hist_size):
+                hist_list.pop()
     return PrioritizedItem(priority=valley.dist_to_target(pos), item=(pos, minute), hist=hist_list)
 
 
@@ -177,13 +185,10 @@ def add_to_end_game_queue(pos: Pos, minute: int, prev: PrioritizedItem):
 add_to_normal_queue(valley.start, 0, None)
 
 best_minutes = inf  # 450 is too high says AOC, so why not make use of it?
-best_dist = inf
 
 first_answer_found = False
 
-rejected = 0
-dedupped = 0
-counter = 1
+
 while not prio_queue.empty() or len(best_positions) > 0 or len(end_game_stack) > 0:
     if len(best_positions) > 0:
         prio_item = best_positions.pop(0)
@@ -203,6 +208,8 @@ while not prio_queue.empty() or len(best_positions) > 0 or len(end_game_stack) >
 
         if (not first_answer_found):
             print("🔥🔥🔥 END GAME STARTS 🔥🔥🔥")
+            dedup_max = 5
+            hist_size = 10
             new_queue = SimpleQueue()
             while not prio_queue.empty():
                 end_game_stack.append(prio_queue.get())
@@ -213,16 +220,18 @@ while not prio_queue.empty() or len(best_positions) > 0 or len(end_game_stack) >
         millis = counter / 1000000
         num_items = len(end_game_stack)
         rejected_m = rejected / 1000000
-        print(f"[{millis}M] current best = {best_minutes}, best dist = {best_dist}, #items {num_items}, rejected={rejected_m}M, dedupped={dedupped}")
+        dedupped_m = dedupped / 1000000
+        print(f"[{millis}M] current best = {best_minutes}, #items {num_items}, rejected={rejected_m}M, dedupped={dedupped_m}M")
 
     for next in valley.next_positions(p, m):
         counter += 1
         latest_pos = hist[0]
         latest_count = hist.count(next)
-        if latest_count > 40 and latest_pos.y > 0:
-            to_stringed = map(lambda p: "(" + str(p.x) + ", " + str(p.y) + ")", hist)
-            hist_text = ','.join(to_stringed)
-            print(f"Dedupping, dedupped={latest_count}, latest pos={latest_pos}, hist={hist_text}!")
+        if latest_count > dedup_max and latest_pos.y > 0:
+            to_stringed = map(
+                lambda p: "(" + str(p.x) + ", " + str(p.y) + ")", hist)
+            # hist_text = ','.join(to_stringed)
+            # print(f"Dedupping, dedupped={latest_count}, latest pos={latest_pos}, hist={hist_text}!")
             dedupped += 1
         elif m + valley.dist_to_target(p) < best_minutes:
             if first_answer_found:
