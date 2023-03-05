@@ -1,6 +1,7 @@
 from __future__ import annotations
 from queue import SimpleQueue, PriorityQueue
 from dataclasses import dataclass, field
+from collections import deque
 from typing import Any
 from math import inf
 
@@ -141,51 +142,60 @@ class Valley:
 class PrioritizedItem:
     priority: int
     item: Any = field(compare=False)
+    hist: Any = field(compare=False)
 
 
 with open(file_name) as file:
     valley = Valley(file.read().splitlines())
 
-positions = PriorityQueue()
+prio_queue = PriorityQueue()
 # positions = SimpleQueue()
+items_deque = deque()
 best_positions = []
 end_game_stack = []
 
 
-def add_to_normal_queue(pos: Pos, minute: int):
-    positions.put(PrioritizedItem(
-        priority=valley.dist_to_target(pos), item=(pos, minute)))
-
-def add_to_end_game_queue(pos: Pos, minute: int):
-    end_game_stack.append(PrioritizedItem(
-        priority=valley.dist_to_target(pos), item=(pos, minute)))
-
-
-def add_to_best_positions(pos: Pos, minute: int):
-    best_positions.append(PrioritizedItem(
-        priority=valley.dist_to_target(pos), item=(pos, minute)))
+def create_prio_item(pos: Pos, minute: int, prev: PrioritizedItem) -> PrioritizedItem:
+    if (prev is None):
+        hist_list = [pos]
+    else:
+        hist_list = prev.hist
+        hist_list.insert(0, pos)
+        if (len(hist_list) > 100):
+            hist_list.pop()
+    return PrioritizedItem(priority=valley.dist_to_target(pos), item=(pos, minute), hist=hist_list)
 
 
-add_to_normal_queue(valley.start, 0)
+def add_to_normal_queue(pos: Pos, minute: int, prev: PrioritizedItem):
+    prio_queue.put(create_prio_item(pos, minute, prev))
 
-best_minutes = 450 # 450 is too high says AOC, so why not make use of it, ###################### Change this if this does not work
+
+def add_to_end_game_queue(pos: Pos, minute: int, prev: PrioritizedItem):
+    end_game_stack.append(create_prio_item(pos, minute, prev))
+
+
+add_to_normal_queue(valley.start, 0, None)
+
+best_minutes = inf  # 450 is too high says AOC, so why not make use of it?
 best_dist = inf
 
 first_answer_found = False
 
 rejected = 0
+dedupped = 0
 counter = 1
-while not positions.empty() or len(best_positions) > 0 or len(end_game_stack) > 0:
+while not prio_queue.empty() or len(best_positions) > 0 or len(end_game_stack) > 0:
     if len(best_positions) > 0:
         prio_item = best_positions.pop(0)
     elif first_answer_found:
         prio_item = end_game_stack.pop()
     else:
-        prio_item = positions.get()
+        prio_item = prio_queue.get()
 
     (p, m) = prio_item.item
     dist = prio_item.priority
-    
+    hist = prio_item.hist
+
     if (p == valley.target and m < best_minutes):
         best_minutes = m
 
@@ -194,28 +204,31 @@ while not positions.empty() or len(best_positions) > 0 or len(end_game_stack) > 
         if (not first_answer_found):
             print("🔥🔥🔥 END GAME STARTS 🔥🔥🔥")
             new_queue = SimpleQueue()
-            while not positions.empty():
-                end_game_stack.append(positions.get())
-                
+            while not prio_queue.empty():
+                end_game_stack.append(prio_queue.get())
+
             first_answer_found = True
 
     if (counter % 1000000 == 0):
         millis = counter / 1000000
         num_items = len(end_game_stack)
         rejected_m = rejected / 1000000
-        print(f"[{millis}M] current best = {best_minutes}, best dist = {best_dist}, end game num items {num_items}, rejected = {rejected_m}M")
+        print(f"[{millis}M] current best = {best_minutes}, best dist = {best_dist}, #items {num_items}, rejected={rejected_m}M, dedupped={dedupped}")
 
     for next in valley.next_positions(p, m):
         counter += 1
-        if (dist < best_dist):
-            # print(f"Improved pos now {p}, dist = {dist}")
-            best_dist = dist
-            add_to_best_positions(next, m+1)
-        elif m + valley.dist_to_target(p) < best_minutes: 
+        latest_pos = hist[0]
+        latest_count = hist.count(next)
+        if latest_count > 40 and latest_pos.y > 0:
+            to_stringed = map(lambda p: "(" + str(p.x) + ", " + str(p.y) + ")", hist)
+            hist_text = ','.join(to_stringed)
+            print(f"Dedupping, dedupped={latest_count}, latest pos={latest_pos}, hist={hist_text}!")
+            dedupped += 1
+        elif m + valley.dist_to_target(p) < best_minutes:
             if first_answer_found:
-                add_to_end_game_queue(next, m+1)
+                add_to_end_game_queue(next, m+1, prio_item)
             else:
-                add_to_normal_queue(next, m + 1)
+                add_to_normal_queue(next, m + 1, prio_item)
         else:
             rejected += 1
 
