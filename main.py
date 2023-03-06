@@ -67,8 +67,8 @@ class Valley:
             for y in range(h):
                 for x in range(w):
                     translated_pos = Pos(x + 1, y + 1)
-                    all_boards[m][x][y] = self.get_pos(
-                        translated_pos, m) == "."
+                    all_boards[m][x][y] = self.get_pos(translated_pos,
+                                                       m) == "."
 
         print("Finished caching boards")
         return all_boards
@@ -166,7 +166,6 @@ class Valley:
             Pos(x, y - 1),
             Pos(x, y + 1)
         ]
-        all_next.sort(key=lambda p: self.dist_to_target(p))
         filtered_next = filter(lambda p: self.is_open_upgraded(p, next_minute),
                                all_next)
         return filtered_next
@@ -186,20 +185,21 @@ with open(file_name) as file:
 
 prio_queue = PriorityQueue()
 items_deque = deque()
-best_positions = []
-end_game_stack = []
 
 rejected = 0
-dedupped = 0
 counter = 1
 
 
-def create_prio_item(pos: Pos, minute: int, prev: PrioritizedItem | None) -> PrioritizedItem:
-    return PrioritizedItem(priority=valley.dist_to_target(pos), item=(pos, minute))
+def create_prio_item(pos: Pos, minute: int,
+                     prev: PrioritizedItem | None) -> PrioritizedItem:
+    return PrioritizedItem(priority=valley.dist_to_target(pos),
+                           item=(pos, minute))
 
 
-def create_prio_item_end_game(pos: Pos, minute: int, prev: PrioritizedItem | None) -> PrioritizedItem:
-    return PrioritizedItem(priority=2*valley.dist_to_target(pos)+minute, item=(pos, minute))
+def create_prio_item_end_game(pos: Pos, minute: int,
+                              prev: PrioritizedItem | None) -> PrioritizedItem:
+    return PrioritizedItem(priority=2 * valley.dist_to_target(pos) + minute,
+                           item=(pos, minute))
 
 
 def add_to_normal_queue(pos: Pos, minute: int, prev: PrioritizedItem | None):
@@ -216,11 +216,8 @@ best_minutes = inf  # 450 is too high says AOC, so why not make use of it?
 
 first_answer_found = False
 
-
-while not prio_queue.empty() or len(best_positions) > 0 or len(end_game_stack) > 0:
-    if len(best_positions) > 0:
-        prio_item = best_positions.pop(0)
-    elif first_answer_found:
+while not prio_queue.empty():
+    if first_answer_found:
         prio_item = prio_queue.get()
     else:
         prio_item = prio_queue.get()
@@ -239,18 +236,18 @@ while not prio_queue.empty() or len(best_positions) > 0 or len(end_game_stack) >
 
     if (counter % 1000000 == 0):
         millis = counter / 1000000
-        # num_items = len(end_game_stack)
         num_items = prio_queue.qsize()
         num_items_m = num_items / 1000000
         rejected_m = rejected / 1000000
         print(
-            f"[{millis}M] current best = {best_minutes}, #items={num_items_m}M, rejected={rejected_m}M")
+            f"[{millis}M] current best = {best_minutes}, #items={num_items_m}M, rejected={rejected_m}M"
+        )
 
     for next in valley.next_positions(p, m):
         counter += 1
         if m + valley.dist_to_target(p) < best_minutes:
             if first_answer_found:
-                add_to_end_game_queue(next, m+1, prio_item)
+                add_to_end_game_queue(next, m + 1, prio_item)
             else:
                 add_to_normal_queue(next, m + 1, prio_item)
         else:
