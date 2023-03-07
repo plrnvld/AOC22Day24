@@ -14,6 +14,18 @@ file_name = "Input.txt"
 PositionCache = List[List[List[bool]]]
 
 
+class Vertex:
+
+    def __init__(self, x: int, y: int, m: int):
+        self.x = x
+        self.y = y
+        self.m = m
+        self.dist = inf
+        self.neighbors = []
+        self.prev = None
+        self.key = (x, y, m)
+
+
 class Pos:
 
     def __init__(self, x, y):
@@ -53,6 +65,7 @@ class Valley:
         self.target = Pos(self.width - 2, self.height - 1)
         self.lines = lines
         self.position_cache = self.cache_positions()
+        self.queue = self.create_vertices(self.start, self.target)
 
     def cache_positions(self) -> PositionCache:
         print("Start caching boards...")
@@ -72,6 +85,44 @@ class Valley:
 
         print("Finished caching boards")
         return all_boards
+
+    def create_vertices(self, start: Pos, target: Pos) -> PriorityQueue:
+        queue = PriorityQueue()
+
+        self.start_vertex = Vertex(start.x, start.y, 0)
+        self.start_vertex.dist = 0
+
+        print("Start creating vertices...")
+        dict = {self.start_vertex.key: self.start_vertex}
+        for m in range(300):
+            for y in range(self.height - 2):
+                for x in range(self.width - 2):
+                    new_vertex = Vertex(x, y, m)
+                    if self.is_open_upgraded(Pos(x + 1, y + 1), m):
+                        dict[new_vertex.key] = new_vertex
+
+        print("Finished creating vertices")
+
+        print("Start connecting neighbors...")
+        for v in queue.queue:
+            next_positions = self.next_positions(Pos(v.x, v.y), v.m)
+            for next in next_positions:
+                reachable_neighbor = dict[(next.x, next.y, v.m + 1)]
+                v.neighbors.append(reachable_neighbor)
+
+                if (v.x == target and v.y == target.y - 1):
+                    target_key = (target.x, target.y, v.m + 1)
+
+                    if target_key in dict.keys():
+                        target_vertex = dict[target_key]
+                    else:
+                        target_vertex = Vertex(target.x, target.y, v.m + 1)
+                        dict[target_vertex.key] = target_vertex
+
+                    v.neighbors.append(target_vertex)
+
+        print("Finished connecting neighbors")
+        return queue
 
     def get_pos_initial(self, pos) -> str:
         return self.lines[pos.y][pos.x]
@@ -128,7 +179,7 @@ class Valley:
         return left != '>' and right != '<' and up != 'v' and down != '^'
 
     def is_open_upgraded(self, pos, minutes) -> bool:
-        if (pos == valley.target or pos == valley.start):
+        if (pos == self.target or pos == self.start):
             return True
 
         if (pos.x <= 0 or pos.x >= self.width - 1 or pos.y <= 0
