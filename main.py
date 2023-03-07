@@ -15,7 +15,6 @@ PositionCache = List[List[List[bool]]]
 
 
 class Vertex:
-
     def __init__(self, x: int, y: int, m: int):
         self.x = x
         self.y = y
@@ -24,6 +23,10 @@ class Vertex:
         self.neighbors = []
         self.prev = None
         self.key = (x, y, m)
+        self.processed = False
+
+    def __lt__(self, other):
+        return self.dist < other.dist
 
 
 class Pos:
@@ -80,8 +83,8 @@ class Valley:
             for y in range(h):
                 for x in range(w):
                     translated_pos = Pos(x + 1, y + 1)
-                    all_boards[m][x][y] = self.get_pos(translated_pos,
-                                                       m) == "."
+                    all_boards[m][x][y] = self.get_pos(
+                        translated_pos, m) == "."
 
         print("Finished caching boards")
         return all_boards
@@ -94,12 +97,22 @@ class Valley:
 
         print("Start creating vertices...")
         dict = {self.start_vertex.key: self.start_vertex}
+
+        for i in range(1, 300):  # Add start vertics for other minutes
+            other_start_vertex = Vertex(start.x, start.y, i)
+            dict[other_start_vertex.key] = other_start_vertex
+
         for m in range(300):
             for y in range(self.height - 2):
                 for x in range(self.width - 2):
-                    new_vertex = Vertex(x, y, m)
+                    new_vertex = Vertex(x + 1, y + 1, m)
                     if self.is_open_upgraded(Pos(x + 1, y + 1), m):
                         dict[new_vertex.key] = new_vertex
+
+        print(f"{len(dict.keys())} created!")
+
+        for k in dict.keys():
+            queue.put(dict[k])
 
         print("Finished creating vertices")
 
@@ -107,20 +120,24 @@ class Valley:
         for v in queue.queue:
             next_positions = self.next_positions(Pos(v.x, v.y), v.m)
             for next in next_positions:
-                reachable_neighbor = dict[(next.x, next.y, v.m + 1)]
-                v.neighbors.append(reachable_neighbor)
-
-                if (v.x == target and v.y == target.y - 1):
-                    target_key = (target.x, target.y, v.m + 1)
+                if (next.x == target.x and next.y == target.y):
+                    target_key = (target.x, target.y, (v.m + 1) % 300)
 
                     if target_key in dict.keys():
                         target_vertex = dict[target_key]
                     else:
-                        target_vertex = Vertex(target.x, target.y, v.m + 1)
+                        target_vertex = Vertex(
+                            target.x, target.y, (v.m + 1) % 300)
                         dict[target_vertex.key] = target_vertex
+                        queue.put(target_vertex)
 
                     v.neighbors.append(target_vertex)
+                else:
+                    reachable_neighbor = dict[(
+                        next.x, next.y, (v.m + 1) % 300)]
+                    v.neighbors.append(reachable_neighbor)
 
+        print(f"Queue size is {queue.qsize()}")
         print("Finished connecting neighbors")
         return queue
 
@@ -234,76 +251,95 @@ print(now)
 with open(file_name) as file:
     valley = Valley(file.read().splitlines())
 
-prio_queue = PriorityQueue()
-items_deque = deque()
+print("Get the answer 🚀")
 
-rejected = 0
-counter = 1
+while not valley.queue.empty():
+    u = valley.queue.get()
+    u.processed = True
 
+    if u.x == valley.target.x and u.y == valley.target.y:
+        print(f"⚡⚡⚡ Answer found, dist={u.dist} ⚡⚡⚡")
 
-def create_prio_item(pos: Pos, minute: int,
-                     prev: PrioritizedItem | None) -> PrioritizedItem:
-    return PrioritizedItem(priority=valley.dist_to_target(pos),
-                           item=(pos, minute))
-
-
-def create_prio_item_end_game(pos: Pos, minute: int,
-                              prev: PrioritizedItem | None) -> PrioritizedItem:
-    return PrioritizedItem(priority=2 * valley.dist_to_target(pos) + minute,
-                           item=(pos, minute))
-
-
-def add_to_normal_queue(pos: Pos, minute: int, prev: PrioritizedItem | None):
-    prio_queue.put(create_prio_item(pos, minute, prev))
+    for v in u.neighbors:
+        if v.x == valley.target.x and v.y == valley.target.y:
+            print(
+                f"👋 Hi neighbor {v.key}, processed={v.processed}, u.dist={u.dist}, v.dist={v.dist}")
+        if not v.processed:
+            alt = u.dist + 1
+            if alt < v.dist:
+                v.dist = alt
+                v.prev = u
 
 
-def add_to_end_game_queue(pos: Pos, minute: int, prev: PrioritizedItem):
-    prio_queue.put(create_prio_item_end_game(pos, minute, prev))
+print("End 🏁")
 
 
-add_to_normal_queue(valley.start, 0, None)
+# prio_queue = PriorityQueue()
+# items_deque = deque()
 
-best_minutes = inf  # 450 is too high says AOC, so why not make use of it?
+# rejected = 0
+# counter = 1
 
-first_answer_found = False
 
-while not prio_queue.empty():
-    if first_answer_found:
-        prio_item = prio_queue.get()
-    else:
-        prio_item = prio_queue.get()
+# def create_prio_item(pos: Pos, minute: int, prev: PrioritizedItem | None) -> PrioritizedItem:
+#     return PrioritizedItem(priority=valley.dist_to_target(pos), item=(pos, minute))
 
-    (p, m) = prio_item.item
-    dist = prio_item.priority
 
-    if (p == valley.target and m < best_minutes):
-        best_minutes = m
+# def create_prio_item_end_game(pos: Pos, minute: int, prev: PrioritizedItem | None) -> PrioritizedItem:
+#     return PrioritizedItem(priority=2*valley.dist_to_target(pos)+minute, item=(pos, minute))
 
-        print(f"🎉 answer found 🎉 => {best_minutes}")
 
-        if (not first_answer_found):
-            print("🔥🔥🔥 END GAME STARTS 🔥🔥🔥")
-            first_answer_found = True
+# def add_to_normal_queue(pos: Pos, minute: int, prev: PrioritizedItem | None):
+#     prio_queue.put(create_prio_item(pos, minute, prev))
 
-    if (counter % 1000000 == 0):
-        millis = counter / 1000000
-        num_items = prio_queue.qsize()
-        num_items_m = num_items / 1000000
-        rejected_m = rejected / 1000000
-        print(
-            f"[{millis}M] current best = {best_minutes}, #items={num_items_m}M, rejected={rejected_m}M"
-        )
 
-    for next in valley.next_positions(p, m):
-        counter += 1
-        if m + valley.dist_to_target(p) < best_minutes:
-            if first_answer_found:
-                add_to_end_game_queue(next, m + 1, prio_item)
-            else:
-                add_to_normal_queue(next, m + 1, prio_item)
-        else:
-            rejected += 1
+# def add_to_end_game_queue(pos: Pos, minute: int, prev: PrioritizedItem):
+#     prio_queue.put(create_prio_item_end_game(pos, minute, prev))
 
-# 170 too low
-# 494 too high
-# 450 too high
+
+# add_to_normal_queue(valley.start, 0, None)
+
+# best_minutes = inf  # 450 is too high says AOC, so why not make use of it?
+
+# first_answer_found = False
+
+
+# while not prio_queue.empty():
+#     if first_answer_found:
+#         prio_item = prio_queue.get()
+#     else:
+#         prio_item = prio_queue.get()
+
+#     (p, m) = prio_item.item
+#     dist = prio_item.priority
+
+#     if (p == valley.target and m < best_minutes):
+#         best_minutes = m
+
+#         print(f"🎉 answer found 🎉 => {best_minutes}")
+
+#         if (not first_answer_found):
+#             print("🔥🔥🔥 END GAME STARTS 🔥🔥🔥")
+#             first_answer_found = True
+
+#     if (counter % 1000000 == 0):
+#         millis = counter / 1000000
+#         num_items = prio_queue.qsize()
+#         num_items_m = num_items / 1000000
+#         rejected_m = rejected / 1000000
+#         print(
+#             f"[{millis}M] current best = {best_minutes}, #items={num_items_m}M, rejected={rejected_m}M")
+
+#     for next in valley.next_positions(p, m):
+#         counter += 1
+#         if m + valley.dist_to_target(p) < best_minutes:
+#             if first_answer_found:
+#                 add_to_end_game_queue(next, m+1, prio_item)
+#             else:
+#                 add_to_normal_queue(next, m + 1, prio_item)
+#         else:
+#             rejected += 1
+
+# # 170 too low
+# # 494 too high
+# # 450 too high
