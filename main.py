@@ -1,3 +1,5 @@
+# https://stackoverflow.com/questions/67641986/update-of-elements-priority-in-priorityqueue-is-not-taken-into-account?
+
 from __future__ import annotations
 from queue import SimpleQueue, PriorityQueue
 from dataclasses import dataclass, field
@@ -15,6 +17,7 @@ PositionCache = List[List[List[bool]]]
 
 
 class Vertex:
+
     def __init__(self, x: int, y: int, m: int):
         self.x = x
         self.y = y
@@ -96,8 +99,8 @@ class Valley:
             for y in range(h):
                 for x in range(w):
                     translated_pos = Pos(x + 1, y + 1)
-                    all_boards[m][x][y] = self.get_pos(
-                        translated_pos, m) == "."
+                    all_boards[m][x][y] = self.get_pos(translated_pos,
+                                                       m) == "."
 
         print("Finished caching boards")
         return all_boards
@@ -124,7 +127,7 @@ class Valley:
                         dict[new_vertex.key] = new_vertex
 
         for k in dict.keys():
-            queue.put(dict[k])        
+            queue.put(dict[k])
 
         for v in queue.queue:
             next_positions = self.next_positions(Pos(v.x, v.y), v.m)
@@ -135,15 +138,15 @@ class Valley:
                     if target_key in dict.keys():
                         target_vertex = dict[target_key]
                     else:
-                        target_vertex = Vertex(
-                            target.x, target.y, (v.m + 1) % 300)
+                        target_vertex = Vertex(target.x, target.y,
+                                               (v.m + 1) % 300)
                         dict[target_vertex.key] = target_vertex
                         queue.put(target_vertex)
 
                     v.neighbors.append(target_vertex)
                 else:
-                    reachable_neighbor = dict[(
-                        next.x, next.y, (v.m + 1) % 300)]
+                    reachable_neighbor = dict[(next.x, next.y,
+                                               (v.m + 1) % 300)]
                     v.neighbors.append(reachable_neighbor)
 
         print("Finished creating vertices")
@@ -279,6 +282,5 @@ print("End 🏁")
 
 # Answer is 343
 # Part 1 implementation: 321k to 311k in 6m 5s.
-
 
 ############### Maybe invalidate existing items in the queue for more performance?
