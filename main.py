@@ -24,6 +24,7 @@ class Vertex:
         self.prev = None
         self.key = (x, y, m)
         self.processed = False
+        self.invalidated = False
 
     def __lt__(self, other):
         return self.dist < other.dist
@@ -182,26 +183,6 @@ class Valley:
     def is_open_initial(self, pos) -> bool:
         return self.lines[pos.y][pos.x] == '.'
 
-    def is_open(self, pos, minutes) -> bool:
-        if (pos == valley.target or pos == valley.start):
-            return True
-
-        if (pos.x <= 0 or pos.x >= self.width - 1 or pos.y <= 0
-                or pos.y >= self.height - 1):
-            return False
-
-        left_pos = self.wrap_to_board_pos(pos.move_left(minutes))
-        right_pos = self.wrap_to_board_pos(pos.move_right(minutes))
-        up_pos = self.wrap_to_board_pos(pos.move_up(minutes))
-        down_pos = self.wrap_to_board_pos(pos.move_down(minutes))
-
-        left = self.get_pos_initial(left_pos)
-        right = self.get_pos_initial(right_pos)
-        up = self.get_pos_initial(up_pos)
-        down = self.get_pos_initial(down_pos)
-
-        return left != '>' and right != '<' and up != 'v' and down != '^'
-
     def is_open_upgraded(self, pos, minutes) -> bool:
         if (pos == self.target or pos == self.start):
             return True
@@ -298,3 +279,6 @@ print("End 🏁")
 
 # Answer is 343
 # Part 1 implementation: 321k to 311k in 6m 5s.
+
+
+############### Maybe invalidate existing items in the queue for more performance?
