@@ -72,8 +72,12 @@ class Valley:
     def __init__(self, lines):
         self.width = len(lines[0])
         self.height = len(lines)
-        self.start = Pos(1, 0)
-        self.target = Pos(self.width - 2, self.height - 1)
+        # self.start = Pos(1, 0)
+        self.start = Pos(self.width - 2, self.height - 1)
+        # self.start_minute = 0
+        self.start_minute = 343
+        # self.target = Pos(self.width - 2, self.height - 1)
+        self.target = Pos(1, 0)
         self.lines = lines
         self.position_cache = self.cache_positions()
         self.queue = self.create_vertices(self.start, self.target)
@@ -100,15 +104,16 @@ class Valley:
     def create_vertices(self, start: Pos, target: Pos) -> PriorityQueue:
         queue = PriorityQueue()
 
-        self.start_vertex = Vertex(start.x, start.y, 0)
+        self.start_vertex = Vertex(start.x, start.y, self.start_minute)
         self.start_vertex.dist = 0
 
         print("Start creating vertices...")
         dict = {self.start_vertex.key: self.start_vertex}
 
-        for i in range(1, 300):  # Add start vertics for other minutes
-            other_start_vertex = Vertex(start.x, start.y, i)
-            dict[other_start_vertex.key] = other_start_vertex
+        for m in range(300):  # Add start vertics for other minutes
+            if m != self.start_minute:
+                other_start_vertex = Vertex(start.x, start.y, m % 300)
+                dict[other_start_vertex.key] = other_start_vertex
 
         for m in range(300):
             for y in range(self.height - 2):
@@ -117,14 +122,9 @@ class Valley:
                     if self.is_open_upgraded(Pos(x + 1, y + 1), m):
                         dict[new_vertex.key] = new_vertex
 
-        print(f"{len(dict.keys())} created!")
-
         for k in dict.keys():
-            queue.put(dict[k])
+            queue.put(dict[k])        
 
-        print("Finished creating vertices")
-
-        print("Start connecting neighbors...")
         for v in queue.queue:
             next_positions = self.next_positions(Pos(v.x, v.y), v.m)
             for next in next_positions:
@@ -145,8 +145,7 @@ class Valley:
                         next.x, next.y, (v.m + 1) % 300)]
                     v.neighbors.append(reachable_neighbor)
 
-        print(f"Queue size is {queue.qsize()}")
-        print("Finished connecting neighbors")
+        print("Finished creating vertices")
         return queue
 
     def get_pos_initial(self, pos) -> str:
@@ -259,13 +258,10 @@ print(now)
 with open(file_name) as file:
     valley = Valley(file.read().splitlines())
 
-print("Get the answer 🚀")
-
 vertices = []
 for v in valley.queue.queue:
     vertices.append(v)
 
-first = True
 num_vertices = len(vertices)
 while not num_vertices == 0:
     smallest_dist = inf
@@ -277,7 +273,8 @@ while not num_vertices == 0:
             best_vertex = v
 
     if num_vertices % 1000 == 0:
-        print(f"> {num_vertices}")
+        now = datetime.datetime.now()
+        print(f"> {num_vertices} -> time {now}")
 
     vertices.remove(best_vertex)
     num_vertices -= 1
@@ -286,99 +283,18 @@ while not num_vertices == 0:
     u = best_vertex
     u.processed = True
 
-    if first:
-        print(f"First is {u}")
-        first = False
-
     if u.x == valley.target.x and u.y == valley.target.y and u.dist < 1000:
         print(f"⚡⚡⚡ Answer found, dist={u.dist} ⚡⚡⚡")
 
     for v in u.neighbors:
 
         if not v.processed:
-            # if u.x == 1 and u.y == 0:
-            #     print(
-            #         f"👋 Hi neighbor, u={u}, v={v}")
-
             alt = u.dist + 1
             if alt < v.dist:
                 v.dist = alt
                 v.prev = u
-                # ################## The priority queue needs to be updated!!!
-
-            # if u.x == 1 and u.y == 0:
-            #     print(f"🌲 v.dist is now {v.dist}")
-
 
 print("End 🏁")
 
-
-# prio_queue = PriorityQueue()
-# items_deque = deque()
-
-# rejected = 0
-# counter = 1
-
-
-# def create_prio_item(pos: Pos, minute: int, prev: PrioritizedItem | None) -> PrioritizedItem:
-#     return PrioritizedItem(priority=valley.dist_to_target(pos), item=(pos, minute))
-
-
-# def create_prio_item_end_game(pos: Pos, minute: int, prev: PrioritizedItem | None) -> PrioritizedItem:
-#     return PrioritizedItem(priority=2*valley.dist_to_target(pos)+minute, item=(pos, minute))
-
-
-# def add_to_normal_queue(pos: Pos, minute: int, prev: PrioritizedItem | None):
-#     prio_queue.put(create_prio_item(pos, minute, prev))
-
-
-# def add_to_end_game_queue(pos: Pos, minute: int, prev: PrioritizedItem):
-#     prio_queue.put(create_prio_item_end_game(pos, minute, prev))
-
-
-# add_to_normal_queue(valley.start, 0, None)
-
-# best_minutes = inf  # 450 is too high says AOC, so why not make use of it?
-
-# first_answer_found = False
-
-
-# while not prio_queue.empty():
-#     if first_answer_found:
-#         prio_item = prio_queue.get()
-#     else:
-#         prio_item = prio_queue.get()
-
-#     (p, m) = prio_item.item
-#     dist = prio_item.priority
-
-#     if (p == valley.target and m < best_minutes):
-#         best_minutes = m
-
-#         print(f"🎉 answer found 🎉 => {best_minutes}")
-
-#         if (not first_answer_found):
-#             print("🔥🔥🔥 END GAME STARTS 🔥🔥🔥")
-#             first_answer_found = True
-
-#     if (counter % 1000000 == 0):
-#         millis = counter / 1000000
-#         num_items = prio_queue.qsize()
-#         num_items_m = num_items / 1000000
-#         rejected_m = rejected / 1000000
-#         print(
-#             f"[{millis}M] current best = {best_minutes}, #items={num_items_m}M, rejected={rejected_m}M")
-
-#     for next in valley.next_positions(p, m):
-#         counter += 1
-#         if m + valley.dist_to_target(p) < best_minutes:
-#             if first_answer_found:
-#                 add_to_end_game_queue(next, m+1, prio_item)
-#             else:
-#                 add_to_normal_queue(next, m + 1, prio_item)
-#         else:
-#             rejected += 1
-
-# # 170 too low
-# # 494 too high
-# # 450 too high
+# Answer is 343
+# Part 1 implementation: 321k to 311k in 6m 5s.
