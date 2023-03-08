@@ -15,7 +15,6 @@ PositionCache = List[List[List[bool]]]
 
 
 class Vertex:
-
     def __init__(self, x: int, y: int, m: int):
         self.x = x
         self.y = y
@@ -31,6 +30,11 @@ class Vertex:
 
     def __repr__(self):
         return f'Vertex({self.x}, {self.y}, {self.m}) dist={self.dist} processed={self.processed}'
+
+    def __eq__(self, other):
+        if isinstance(other, Vertex):
+            return self.x == other.x and self.y == other.y and self.m == other.m
+        return False
 
 
 class Pos:
@@ -87,8 +91,8 @@ class Valley:
             for y in range(h):
                 for x in range(w):
                     translated_pos = Pos(x + 1, y + 1)
-                    all_boards[m][x][y] = self.get_pos(translated_pos,
-                                                       m) == "."
+                    all_boards[m][x][y] = self.get_pos(
+                        translated_pos, m) == "."
 
         print("Finished caching boards")
         return all_boards
@@ -130,15 +134,15 @@ class Valley:
                     if target_key in dict.keys():
                         target_vertex = dict[target_key]
                     else:
-                        target_vertex = Vertex(target.x, target.y,
-                                               (v.m + 1) % 300)
+                        target_vertex = Vertex(
+                            target.x, target.y, (v.m + 1) % 300)
                         dict[target_vertex.key] = target_vertex
                         queue.put(target_vertex)
 
                     v.neighbors.append(target_vertex)
                 else:
-                    reachable_neighbor = dict[(next.x, next.y,
-                                               (v.m + 1) % 300)]
+                    reachable_neighbor = dict[(
+                        next.x, next.y, (v.m + 1) % 300)]
                     v.neighbors.append(reachable_neighbor)
 
         print(f"Queue size is {queue.qsize()}")
@@ -257,9 +261,29 @@ with open(file_name) as file:
 
 print("Get the answer 🚀")
 
+vertices = []
+for v in valley.queue.queue:
+    vertices.append(v)
+
 first = True
-while not valley.queue.empty():
-    u = valley.queue.get()
+num_vertices = len(vertices)
+while not num_vertices == 0:
+    smallest_dist = inf
+    best_vertex = vertices[0]
+
+    for v in vertices:
+        if v.dist < smallest_dist:
+            smallest_dist = v.dist
+            best_vertex = v
+
+    if num_vertices % 1000 == 0:
+        print(f"> {num_vertices}")
+
+    vertices.remove(best_vertex)
+    num_vertices -= 1
+
+    # u = valley.queue.get()
+    u = best_vertex
     u.processed = True
 
     if first:
@@ -272,8 +296,9 @@ while not valley.queue.empty():
     for v in u.neighbors:
 
         if not v.processed:
-            if u.x == 1 and u.y == 0:
-                print(f"👋 Hi neighbor, u={u}, v={v}")
+            # if u.x == 1 and u.y == 0:
+            #     print(
+            #         f"👋 Hi neighbor, u={u}, v={v}")
 
             alt = u.dist + 1
             if alt < v.dist:
@@ -281,10 +306,12 @@ while not valley.queue.empty():
                 v.prev = u
                 # ################## The priority queue needs to be updated!!!
 
-            if u.x == 1 and u.y == 0:
-                print(f"🌲 v.dist is now {v.dist}")
+            # if u.x == 1 and u.y == 0:
+            #     print(f"🌲 v.dist is now {v.dist}")
+
 
 print("End 🏁")
+
 
 # prio_queue = PriorityQueue()
 # items_deque = deque()
@@ -292,23 +319,29 @@ print("End 🏁")
 # rejected = 0
 # counter = 1
 
+
 # def create_prio_item(pos: Pos, minute: int, prev: PrioritizedItem | None) -> PrioritizedItem:
 #     return PrioritizedItem(priority=valley.dist_to_target(pos), item=(pos, minute))
+
 
 # def create_prio_item_end_game(pos: Pos, minute: int, prev: PrioritizedItem | None) -> PrioritizedItem:
 #     return PrioritizedItem(priority=2*valley.dist_to_target(pos)+minute, item=(pos, minute))
 
+
 # def add_to_normal_queue(pos: Pos, minute: int, prev: PrioritizedItem | None):
 #     prio_queue.put(create_prio_item(pos, minute, prev))
 
+
 # def add_to_end_game_queue(pos: Pos, minute: int, prev: PrioritizedItem):
 #     prio_queue.put(create_prio_item_end_game(pos, minute, prev))
+
 
 # add_to_normal_queue(valley.start, 0, None)
 
 # best_minutes = inf  # 450 is too high says AOC, so why not make use of it?
 
 # first_answer_found = False
+
 
 # while not prio_queue.empty():
 #     if first_answer_found:
