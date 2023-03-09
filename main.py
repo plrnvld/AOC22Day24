@@ -1,4 +1,4 @@
-# https://stackoverflow.com/questions/67641986/update-of-elements-priority-in-priorityqueue-is-not-taken-into-account?
+# https://stackoverflow.com/questions/67641986/update-of-elements-priority-in-priorityqueue-is-not-taken-into-account
 
 from __future__ import annotations
 from queue import SimpleQueue, PriorityQueue
@@ -17,7 +17,6 @@ PositionCache = List[List[List[bool]]]
 
 
 class Vertex:
-
     def __init__(self, x: int, y: int, m: int):
         self.x = x
         self.y = y
@@ -76,12 +75,12 @@ class Valley:
     def __init__(self, lines):
         self.width = len(lines[0])
         self.height = len(lines)
-        # self.start = Pos(1, 0)
-        self.start = Pos(self.width - 2, self.height - 1)
+        self.start = Pos(1, 0)
+        # self.start = Pos(self.width - 2, self.height - 1)
         # self.start_minute = 0
-        self.start_minute = 343
-        # self.target = Pos(self.width - 2, self.height - 1)
-        self.target = Pos(1, 0)
+        self.start_minute = 343 + 320
+        self.target = Pos(self.width - 2, self.height - 1)
+        # self.target = Pos(1, 0)
         self.lines = lines
         self.position_cache = self.cache_positions()
         self.queue = self.create_vertices(self.start, self.target)
@@ -99,8 +98,8 @@ class Valley:
             for y in range(h):
                 for x in range(w):
                     translated_pos = Pos(x + 1, y + 1)
-                    all_boards[m][x][y] = self.get_pos(translated_pos,
-                                                       m) == "."
+                    all_boards[m][x][y] = self.get_pos(
+                        translated_pos, m) == "."
 
         print("Finished caching boards")
         return all_boards
@@ -127,7 +126,7 @@ class Valley:
                         dict[new_vertex.key] = new_vertex
 
         for k in dict.keys():
-            queue.put(dict[k])
+            queue.put(dict[k])        
 
         for v in queue.queue:
             next_positions = self.next_positions(Pos(v.x, v.y), v.m)
@@ -138,15 +137,15 @@ class Valley:
                     if target_key in dict.keys():
                         target_vertex = dict[target_key]
                     else:
-                        target_vertex = Vertex(target.x, target.y,
-                                               (v.m + 1) % 300)
+                        target_vertex = Vertex(
+                            target.x, target.y, (v.m + 1) % 300)
                         dict[target_vertex.key] = target_vertex
                         queue.put(target_vertex)
 
                     v.neighbors.append(target_vertex)
                 else:
-                    reachable_neighbor = dict[(next.x, next.y,
-                                               (v.m + 1) % 300)]
+                    reachable_neighbor = dict[(
+                        next.x, next.y, (v.m + 1) % 300)]
                     v.neighbors.append(reachable_neighbor)
 
         print("Finished creating vertices")
@@ -258,7 +257,7 @@ while not num_vertices == 0:
 
     if num_vertices % 1000 == 0:
         now = datetime.datetime.now()
-        print(f"> {num_vertices} -> time {now}")
+        print(f"> {num_vertices} -> {now.time()}")
 
     vertices.remove(best_vertex)
     num_vertices -= 1
@@ -282,5 +281,13 @@ print("End 🏁")
 
 # Answer is 343
 # Part 1 implementation: 321k to 311k in 6m 5s.
+
+# Part 2:
+# * There 343
+# * Back again 320
+# * There again ? (starts at 663) 297
+
+# Answer = 343 + 320 + 297 = 960
+
 
 ############### Maybe invalidate existing items in the queue for more performance?
